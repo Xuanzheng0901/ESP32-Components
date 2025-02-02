@@ -1,7 +1,8 @@
 #include "WIFI.h"
 static const char* TAG = "WiFi-Sta";
-static esp_netif_t *netif_handle = NULL;
-uint8_t wifi_status = 0;
+static const uint8_t WIFI_CONNECTED = 0;
+static esp_netif_t *netif_handle_sta = NULL;
+EventGroupHandle_t wifi_group;
 
 static void netif_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
 {
@@ -9,12 +10,12 @@ static void netif_event_handler(void* arg, esp_event_base_t event_base, int32_t 
     {
         if(event_id == WIFI_EVENT_STA_CONNECTED)
         {
-            esp_netif_create_ip6_linklocal(netif_handle); //连接至wifi后立即获取ipv6
-            wifi_status = 1;
+            esp_netif_create_ip6_linklocal(netif_handle_sta); //连接至wifi后立即获取ipv6
+            xEventGroupSetBits(wifi_group, WIFI_CONNECTED);
         }
         else if(event_id == WIFI_EVENT_STA_DISCONNECTED || event_id == WIFI_EVENT_STA_START)
         {
-            wifi_status = 0;
+            xEventGroupClearBits(wifi_group, WIFI_CONNECTED);
             esp_wifi_connect(); //wifi启动或断连时尝试连接至目标wifi
         }
     }
@@ -32,8 +33,8 @@ void wifi_init(void)
     nvs_flash_init();
     esp_event_loop_create_default();
     esp_netif_init();
-
-    netif_handle = esp_netif_create_default_wifi_sta();
+    wifi_group = xEventGroupCreate();
+    netif_handle_sta = esp_netif_create_default_wifi_sta();
 
     esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &netif_event_handler, NULL);
     esp_event_handler_register(IP_EVENT, ESP_EVENT_ANY_ID, &netif_event_handler, NULL);
