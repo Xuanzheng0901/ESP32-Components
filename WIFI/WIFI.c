@@ -1,6 +1,6 @@
 #include "WIFI.h"
 static const char* TAG = "WiFi-Sta";
-static const uint8_t WIFI_CONNECTED = 0;
+static const uint8_t WIFI_CONNECTED = 1;
 static esp_netif_t *netif_handle_sta = NULL;
 EventGroupHandle_t wifi_group;
 
